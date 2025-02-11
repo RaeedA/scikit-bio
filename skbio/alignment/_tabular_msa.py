@@ -2486,9 +2486,12 @@ class TabularMSA(MetadataMixin, PositionalMetadataMixin, SkbioObject):
         else:
             seqtype = seqs[0].__class__
             bits = path.to_bits()
+            # print(bits)
             gaps = np.repeat(bits, path.lengths, axis=1)
             gap_char = ord(seqtype.default_gap_char)
             byte_arr = np.full(path.shape, gap_char, dtype=np.uint8)
+            # print(byte_arr[gaps == 0])
+            # print(np.concatenate([x._bytes[x._bytes != gap_char] for x in seqs]))
             byte_arr[gaps == 0] = np.concatenate(
                 [x._bytes[x._bytes != gap_char] for x in seqs]
             )

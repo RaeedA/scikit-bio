@@ -1,33 +1,35 @@
+from random import choice, randint, seed
 import timeit
-from align import align_wrapper
+
+from skbio import DNA
+from align import align_wrapper, score_wrapper
 from skbio.sequence import SubstitutionMatrix as SubMatrix
 from Bio.Align import substitution_matrices
 from Bio import Align
 
 
-def run(seq1, seq2):
-    gap_open = 2
-    gap_extend = 2
-    seq1 = seq1.upper()
-    seq2 = seq2.upper()
+def run(seq1, seq2, gap_open, gap_extend, scope):
     submat = SubMatrix.by_name("NUC.4.4")
-    scope = "global"
-
-    res, score = align_wrapper(seq1, seq2, submat, -gap_open, -gap_extend, scope)
-    print("Mine:", score)
-    print(res)
     aligner = Align.PairwiseAligner(
         substitution_matrix=substitution_matrices.load("NUC.4.4"),
-        open_gap_score=-gap_open,
-        extend_gap_score=-gap_extend,
+        open_gap_score=gap_open,
+        extend_gap_score=gap_extend,
         mode=scope,
     ).align(seq1, seq2)
     print("BioPy:", aligner[0].score)
-    print(aligner[0])
-    # test = global_pairwise_align(DNA(seq1),
-    #       DNA(seq2), gap_open, gap_extend, submat.to_dict())
-    # print("SciKit:", test[1])
-    # print(test[0])
+    for align in aligner:
+        print(align)
+    res, score = align_wrapper(seq1, seq2, submat, gap_open, gap_extend, scope)
+    print("Mine:", score)
+    print()
+    dnas = res.to_dict()
+    seq1_aligned = dnas[0].values
+    seq2_aligned = dnas[1].values
+    print(
+        "Score:",
+        score_wrapper(seq1_aligned, seq2_aligned, submat, gap_open, gap_extend),
+    )
+    print(res)
 
 
 def times(seq1, seq2):
@@ -66,12 +68,57 @@ def times(seq1, seq2):
     # print(f"biopy: {result/num:.5f}s")
 
 
+def test(times, length, diff=0):
+    submat1 = SubMatrix.by_name("NUC.4.4")
+    submat2 = substitution_matrices.load("NUC.4.4")
+
+    chars = ["A", "C", "G", "T"]
+    seed(572989)
+    for i in range(times):
+        a = "".join(choice(chars) for j in range(length))
+        b = "".join(choice(chars) for j in range(length + randint(-diff, diff)))
+        if randint(1, 2) == 1:
+            scope = "local"
+        else:
+            scope = "global"
+        gap_open = randint(-10, 0)
+        gap_extend = randint(-10, 0)
+        try:
+            res, score1 = align_wrapper(a, b, submat1, gap_open, gap_extend, scope)
+        except Exception:
+            continue
+        score2 = (
+            Align.PairwiseAligner(
+                substitution_matrix=submat2,
+                open_gap_score=gap_open,
+                extend_gap_score=gap_extend,
+                mode=scope,
+            )
+            .align(a, b)[0]
+            .score
+        )
+        dnas = res.to_dict()
+        seq1_aligned = dnas[0].values
+        seq2_aligned = dnas[1].values
+        score3 = score_wrapper(
+            seq1_aligned, seq2_aligned, submat1, gap_open, gap_extend
+        )
+        if score1 != score2 and score3 != score2:
+            print("mismatch!", end=" ")
+            print(f'"{a}", "{b}", {gap_open}, {gap_extend}, "{scope}"', end=" ")
+            print("mine", score1, "func", score3, "biopy", score2, end=" ")
+            print(str(seq1_aligned), str(seq2_aligned))
+
+
 if __name__ == "__main__":
-    run(
-        "CCGTTA",
-        "CCGATGTT",
-    )
-    # with open('skbio/alignment/a.txt', 'r') as a,
-    # open('skbio/alignment/a.txt', 'r') as b:
-    #     run(a.read(), b.read())
-    # run('gcgt', 'gcgtt')
+    # test(100, 5)
+    # for a in range(1):
+    # i = 0
+    # try:
+    # while(True):
+    # run("GCTCC", "CTAGG", -8, -5, "global")
+    # i += 1
+    # except Exception as e:
+    # print(e)
+    run("TGATC", "CCCGA", -1, -7, "global")
+    # run("AGATCGATCATTCGCAATAG", "GTGATACTGACGCGTGAAAT", -3, -5, "global")
