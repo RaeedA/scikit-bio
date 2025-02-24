@@ -118,15 +118,9 @@ def test(times, length, diff=0):
 
 
 if __name__ == "__main__":
+    # use python skbio/alignment/setup.py build_ext --inplace
+    # && echo =====RUNNING CODE=====
+    # && python skbio/alignment/runAlign.py
     test(100, 5)
-    # for a in range(1):
-    # i = 0
-    # try:
-    # while(True):
-    # run("CGTGC", "ACAAT", 0, -2, "global")
-    # i += 1
-    # except Exception as e:
-    # print(e)
     # run("TGATC", "CCCGA", 0, -7, "global")
     # run("CGGAA", "CAACA", 0, -2, "global")
-    # run("AGATCGATCATTCGCAATAG", "GTGATACTGACGCGTGAAAT", -3, -5, "global")
