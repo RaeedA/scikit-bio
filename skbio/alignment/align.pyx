@@ -41,6 +41,8 @@ def align_wrapper(seq1, seq2, subMatrix, gap_open, gap_extend, scope):
     aligned_seq1 = np.zeros(max_len, dtype=np.uint8)
     aligned_seq2 = np.zeros(max_len, dtype=np.uint8)
 
+    # gap_open = gap_open - gap_extend
+
     args = (seq1_idx, seq2_idx, aligned_seq1, aligned_seq2, subMatrix._data.astype(int), gap_open, gap_extend)
     if(local):
         args += (local_align_fill, local_align_trace)
@@ -85,42 +87,44 @@ cdef TracebackRes align_main(const uint8_t[::1] seq1, const uint8_t[::1] seq2, c
     cdef Index loc = Index(i = m, j = n)
 
     fill_func(D_view, P_view, Q_view, subMatrix, seq1, seq2, gap_open, gap_extend)
-    print("P_view:")
-    for a in P_view:
-        for b in a:
-            c = str(b)
-            if abs(b) < 100:
-                c = ' ' + c
-            if abs(b) < 10:
-                c = ' ' + c
-            if b >= 0:
-                c = ' ' + c
-            print(c, end=' ')
-        print()
-    print("D_view:")
-    for a in D_view:
-        for b in a:
-            c = str(b)
-            if abs(b) < 100:
-                c = ' ' + c
-            if abs(b) < 10:
-                c = ' ' + c
-            if b >= 0:
-                c = ' ' + c
-            print(c, end=' ')
-        print()
-    print("Q_view")
-    for a in Q_view:
-        for b in a:
-            c = str(b)
-            if abs(b) < 100:
-                c = ' ' + c
-            if abs(b) < 10:
-                c = ' ' + c
-            if b >= 0:
-                c = ' ' + c
-            print(c, end=' ')
-        print()
+
+    # print("P_view:")
+    # for a in P_view:
+    #     for b in a:
+    #         c = str(b)
+    #         if abs(b) < 100:
+    #             c = ' ' + c
+    #         if abs(b) < 10:
+    #             c = ' ' + c
+    #         if b >= 0:
+    #             c = ' ' + c
+    #         print(c, end=' ')
+    #     print()
+    # print("D_view:")
+    # for a in D_view:
+    #     for b in a:
+    #         c = str(b)
+    #         if abs(b) < 100:
+    #             c = ' ' + c
+    #         if abs(b) < 10:
+    #             c = ' ' + c
+    #         if b >= 0:
+    #             c = ' ' + c
+    #         print(c, end=' ')
+    #     print()
+    # print("Q_view")
+    # for a in Q_view:
+    #     for b in a:
+    #         c = str(b)
+    #         if abs(b) < 100:
+    #             c = ' ' + c
+    #         if abs(b) < 10:
+    #             c = ' ' + c
+    #         if b >= 0:
+    #             c = ' ' + c
+    #         print(c, end=' ')
+    #     print()
+    
     res = trace_func(D_view, P_view, Q_view, loc, max_len, aligned_seq1_view, aligned_seq2_view, seq1, seq2, subMatrix, gap_open, gap_extend)
     return res
 
@@ -136,14 +140,14 @@ cdef void global_align_fill(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[
     #TODO: look at numpy arrange/line space to fill the first row/col for D, Q, and P (even spacing)
 
     for i in range(1, m + 1):
-        D_view[i, 0] = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (i-1)
+        D_view[i, 0] = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * i
         Q_view[i, 0] = NEG_INF
         P_view[i, 0] = 0
 
     #TODO: can set i,0 to 0,j using numpy to improve performance more!
 
     for j in range(1, n + 1):
-        D_view[0, j] = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * (j-1)
+        D_view[0, j] = GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY * j
         P_view[0, j] = NEG_INF
         Q_view[0, j] = 0
 
@@ -153,12 +157,12 @@ cdef void global_align_fill(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[
     for i in range(1, m + 1):
         for j in range(1, n + 1):
             P_view[i, j] = max(
-                D_view[i - 1, j] + GAP_OPEN_PENALTY,
+                D_view[i - 1, j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY,# if D_view[i - 1, j] > P_view[i - 1, j] else NEG_INF,
                 P_view[i - 1, j] + GAP_EXTEND_PENALTY
             )
 
             Q_view[i, j] = max(
-                D_view[i, j - 1] + GAP_OPEN_PENALTY,
+                D_view[i, j - 1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY,# if D_view[i, j - 1] > Q_view[i, j - 1] else NEG_INF,
                 Q_view[i, j - 1] + GAP_EXTEND_PENALTY
             )
 
@@ -229,49 +233,34 @@ cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view,
         score = Q_view[loc.i, loc.j]
         current_matrix = 2
 
-    tmpTime = 0
-    tmp1 = 0
-    tmp2 = 0
-
     while loc.i > 0 and loc.j > 0:
         # print(loc.i, loc.j, current_matrix)
         #TODO: store them in var if needed
         if current_matrix == 0:
-            if D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]] >= P_view[loc.i, loc.j] and D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]] >= Q_view[loc.i, loc.j]:
+            if D_view[loc.i, loc.j] == D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]]:
+                # print('diag', D_view[loc.i, loc.j], D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]], P_view[loc.i, loc.j], Q_view[loc.i, loc.j])
                 loc.i -= 1
                 loc.j -= 1
-                print('diag', subMatrix[seq1[loc.i], seq2[loc.j]])
-            elif P_view[loc.i, loc.j] >= Q_view[loc.i, loc.j]:
+            elif D_view[loc.i, loc.j] == P_view[loc.i, loc.j]:
                 current_matrix = 1
                 continue
-                # print('up', "one", 0)
-            else:
+            elif D_view[loc.i, loc.j] == Q_view[loc.i, loc.j]:
                 current_matrix = 2
                 continue
-                # print('side', "one", 0)
+            else:
+                print('oh lordy')
         elif current_matrix == 1:
+            # print('up', P_view[loc.i, loc.j], D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY)
             aligned_seq2_view[idx] = GAP
-            if D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY > P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY:
+            if P_view[loc.i, loc.j] == D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY:
                 current_matrix = 0
-                tmp1 = 0
             loc.i -= 1
-            # print(D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY, P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY)
-            if tmp1 == 0:
-                print('up', GAP_OPEN_PENALTY)
-            else:
-                print('up', GAP_EXTEND_PENALTY)
-            tmp1 = 1
         else:
+            # print('side', Q_view[loc.i, loc.j], D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, Q_view[loc.i, loc.j-1] + GAP_EXTEND_PENALTY)
             aligned_seq1_view[idx] = GAP
-            if D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY > Q_view[loc.i, loc.j-1] + GAP_EXTEND_PENALTY:
+            if Q_view[loc.i, loc.j] == D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY:
                 current_matrix = 0 
-                tmp2 = 0
             loc.j -= 1
-            if tmp2 == 0:
-                print('side', "two", GAP_OPEN_PENALTY)
-            else:
-                print('side', "two", GAP_EXTEND_PENALTY)
-            tmp2 = 1
         idx -= 1
         # print()
     
@@ -369,13 +358,13 @@ cdef int8_t alignment_score(const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] 
     for i in range(seq1.shape[0]):
         if seq1[i] == GAP_SCORE:
             if state == 0 or state == 2:
-                score += GAP_OPEN_PENALTY
+                score += GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY
                 state = 1
             else:
                 score += GAP_EXTEND_PENALTY
         elif seq2[i] == GAP_SCORE:
             if state == 0 or state == 1:
-                score += GAP_OPEN_PENALTY
+                score += GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY
                 state = 2
             else:
                 score += GAP_EXTEND_PENALTY

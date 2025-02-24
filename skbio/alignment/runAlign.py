@@ -73,7 +73,7 @@ def test(times, length, diff=0):
     submat2 = substitution_matrices.load("NUC.4.4")
 
     chars = ["A", "C", "G", "T"]
-    seed(572989)
+    # seed(572989)
     for i in range(times):
         a = "".join(choice(chars) for j in range(length))
         b = "".join(choice(chars) for j in range(length + randint(-diff, diff)))
@@ -81,6 +81,7 @@ def test(times, length, diff=0):
             scope = "local"
         else:
             scope = "global"
+        scope = "global"
         gap_open = randint(-10, 0)
         gap_extend = randint(-10, 0)
         try:
@@ -103,22 +104,29 @@ def test(times, length, diff=0):
         score3 = score_wrapper(
             seq1_aligned, seq2_aligned, submat1, gap_open, gap_extend
         )
-        if score1 != score2 and score3 != score2:
-            print("mismatch!", end=" ")
-            print(f'"{a}", "{b}", {gap_open}, {gap_extend}, "{scope}"', end=" ")
-            print("mine", score1, "func", score3, "biopy", score2, end=" ")
-            print(str(seq1_aligned), str(seq2_aligned))
+        # if score1 != score2 and score3 != score2:
+        #     print("mismatch!", score2 > score1, score1 == score3, end=" ")
+        #     print(f'"{a}", "{b}", {gap_open}, {gap_extend}, "{scope}"', end=" ")
+        #     print("mine", score1, "func", score3, "biopy", score2, end=" ")
+        #     print(str(seq1_aligned), str(seq2_aligned), end=" ")
+        #     print()
+        if score1 != score3:
+            print("mismatch!", score1, score3, end=" ")
+            print(f'"{a}", "{b}", {gap_open}, {gap_extend}, "{scope}"')
+        # if score2 != score1:
+        #     print(score2-score1, gap_open, gap_extend)
 
 
 if __name__ == "__main__":
-    # test(100, 5)
+    test(100, 5)
     # for a in range(1):
     # i = 0
     # try:
     # while(True):
-    # run("GCTCC", "CTAGG", -8, -5, "global")
+    # run("CGTGC", "ACAAT", 0, -2, "global")
     # i += 1
     # except Exception as e:
     # print(e)
-    run("TGATC", "CCCGA", -1, -7, "global")
+    # run("TGATC", "CCCGA", 0, -7, "global")
+    # run("CGGAA", "CAACA", 0, -2, "global")
     # run("AGATCGATCATTCGCAATAG", "GTGATACTGACGCGTGAAAT", -3, -5, "global")
