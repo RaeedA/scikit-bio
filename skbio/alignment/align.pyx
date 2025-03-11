@@ -5,7 +5,7 @@ import numpy as np
 cimport numpy as cnp
 from skbio.alignment import TabularMSA, AlignPath
 from skbio.sequence import DNA
-from libc.stdint cimport int32_t, uint8_t, INT32_MIN, int8_t, int64_t
+from numpy cimport int32_t, uint8_t, int8_t, int64_t, float32_t
 cnp.import_array()
 
 #TODO: float support, always output float!
@@ -17,7 +17,7 @@ cnp.import_array()
 # Scoring constants
 cdef uint8_t GAP = 1
 cdef uint8_t GAP_SCORE = 255
-cdef int32_t NEG_INF = INT32_MIN + 100
+cdef int32_t NEG_INF = -2147483648 + 10
 
 cdef struct Index:
     Py_ssize_t i 
@@ -244,11 +244,9 @@ cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view,
             elif D_view[loc.i, loc.j] == P_view[loc.i, loc.j]:
                 current_matrix = 1
                 continue
-            elif D_view[loc.i, loc.j] == Q_view[loc.i, loc.j]:
+            else:
                 current_matrix = 2
                 continue
-            else:
-                print('oh lordy')
         elif current_matrix == 1:
             # print('up', P_view[loc.i, loc.j], D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY)
             aligned_seq2_view[idx] = GAP
@@ -345,57 +343,44 @@ cdef TracebackRes local_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view, 
     res.end = end
     return res
 
-def score_wrapper(seq1, seq2, subMatrix, GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY):
-    asDNA = [DNA(seq1), DNA(seq2)]
-    seq1_idx = subMatrix._char_hash[asDNA[0]._bytes]
-    seq2_idx = subMatrix._char_hash[asDNA[1]._bytes]
-    return alignment_score(seq1_idx, seq2_idx, subMatrix._data.astype(int), GAP_OPEN_PENALTY, GAP_EXTEND_PENALTY)
+def align_score(seq1, seq2, subMatrix, gap_open, gap_extend):
+    # Has sequences through substitution matrix
+    seq1_idx = subMatrix._char_hash[DNA(seq1)._bytes]
+    seq2_idx = subMatrix._char_hash[DNA(seq2)._bytes]
+    # Run though helper function to get ouput
+    return _align_score(seq1_idx, seq2_idx, subMatrix._data.astype(np.float32), gap_open, gap_extend)
 
-cdef int8_t alignment_score(const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const cnp.int64_t[:, :] subMatrix, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept nogil:
+cdef float32_t _align_score(const uint8_t[::1] seq1, const uint8_t[::1] seq2, const float32_t[:, :] subMatrix, const int8_t gap_open, const int8_t gap_extend) noexcept nogil:
+    # Initialize  variables
     cdef uint8_t i
     cdef uint8_t state = 0
-    cdef int8_t score = 0
+    cdef float32_t score = 0
+
+    # Iterate through sequences
     for i in range(seq1.shape[0]):
+        # Gap in seq1
         if seq1[i] == GAP_SCORE:
+            # Either no current gap or gap in seq2
             if state == 0 or state == 2:
-                score += GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY
+                score += gap_open + gap_extend
                 state = 1
             else:
-                score += GAP_EXTEND_PENALTY
+                score += gap_extend
+        # Gap in seq2
         elif seq2[i] == GAP_SCORE:
+            # Either no current gap or gap in seq1
             if state == 0 or state == 1:
-                score += GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY
+                score += gap_open + gap_extend
                 state = 2
             else:
-                score += GAP_EXTEND_PENALTY
+                score += gap_extend
+        # No gaps
         else:
             score += subMatrix[seq1[i], seq2[i]] 
             state = 0
-        # if seq1[i] == GAP_SCORE and seq2[i] == GAP_SCORE:
-        #     if state == 0:
-        #         score += GAP_OPEN_PENALTY * 2
-        #         state = 3
-        #     elif state == 1 or state == 2:
-        #         score += GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY
-        #         state = 3
-        #     else:
-        #         score += GAP_EXTEND_PENALTY * 2
-        # elif seq1[i] == GAP_SCORE:
-        #     if state == 0 or state == 2:
-        #         score += GAP_OPEN_PENALTY
-        #         state = 1
-        #     else:
-        #         score += GAP_EXTEND_PENALTY
-        #         state = 1
-        # elif seq2[i] == GAP_SCORE:
-        #     if state == 0 or state == 1:
-        #         score += GAP_OPEN_PENALTY
-        #         state = 2
-        #     else:
-        #         score += GAP_EXTEND_PENALTY
-        #         state = 2
-        # else:
-        #     score += subMatrix[seq1[i], seq2[i]] 
-        #     state = 0
+    # Return final result
     return score
-    #what happens when they're both gaps?? does it swap like i did here?
+
+# TODO: change ints to floats
+# TODO: make pull request for just alignment score function
+# deadline march 20

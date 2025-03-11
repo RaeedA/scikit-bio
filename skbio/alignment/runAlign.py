@@ -2,7 +2,7 @@ from random import choice, randint, seed
 import timeit
 
 from skbio import DNA
-from align import align_wrapper, score_wrapper
+from align import align_wrapper, align_score
 from skbio.sequence import SubstitutionMatrix as SubMatrix
 from Bio.Align import substitution_matrices
 from Bio import Align
@@ -27,9 +27,10 @@ def run(seq1, seq2, gap_open, gap_extend, scope):
     seq2_aligned = dnas[1].values
     print(
         "Score:",
-        score_wrapper(seq1_aligned, seq2_aligned, submat, gap_open, gap_extend),
+        align_score(seq1_aligned, seq2_aligned, submat, gap_open, gap_extend),
     )
     print(res)
+    (align_score("TGATC", seq2_aligned, submat, gap_open, gap_extend),)
 
 
 def times(seq1, seq2):
@@ -101,9 +102,7 @@ def test(times, length, diff=0):
         dnas = res.to_dict()
         seq1_aligned = dnas[0].values
         seq2_aligned = dnas[1].values
-        score3 = score_wrapper(
-            seq1_aligned, seq2_aligned, submat1, gap_open, gap_extend
-        )
+        score3 = align_score(seq1_aligned, seq2_aligned, submat1, gap_open, gap_extend)
         # if score1 != score2 and score3 != score2:
         #     print("mismatch!", score2 > score1, score1 == score3, end=" ")
         #     print(f'"{a}", "{b}", {gap_open}, {gap_extend}, "{scope}"', end=" ")
@@ -121,6 +120,6 @@ if __name__ == "__main__":
     # use python skbio/alignment/setup.py build_ext --inplace
     # && echo =====RUNNING CODE=====
     # && python skbio/alignment/runAlign.py
-    test(100, 5)
-    # run("TGATC", "CCCGA", 0, -7, "global")
+    # test(1000, 100)
+    run("TGATC", "CCCGA", -1, -7, "global")
     # run("CGGAA", "CAACA", 0, -2, "global")
