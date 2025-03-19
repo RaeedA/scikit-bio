@@ -70,16 +70,16 @@ cdef TracebackRes align_main(const uint8_t[::1] seq1, const uint8_t[::1] seq2, c
     cdef TracebackRes res
     cdef uint8_t score
     cdef Py_ssize_t max_len = m + n
-    # cdef D = np.empty((m + 1, n + 1), dtype=np.int32)
-    # cdef P = np.empty((m + 1, n + 1), dtype=np.int32)
-    # cdef Q = np.empty((m + 1, n + 1), dtype=np.int32)
-    cdef D = np.zeros((m + 1, n + 1), dtype=np.int32)
-    cdef P = np.zeros((m + 1, n + 1), dtype=np.int32)
-    cdef Q = np.zeros((m + 1, n + 1), dtype=np.int32)
+    # cdef D = np.empty((m + 1, n + 1), dtype=np.float32)
+    # cdef P = np.empty((m + 1, n + 1), dtype=np.float32)
+    # cdef Q = np.empty((m + 1, n + 1), dtype=np.float32)
+    cdef D = np.zeros((m + 1, n + 1), dtype=np.float32)
+    cdef P = np.zeros((m + 1, n + 1), dtype=np.float32)
+    cdef Q = np.zeros((m + 1, n + 1), dtype=np.float32)
 
-    cdef int32_t[:, ::1] D_view = D
-    cdef int32_t[:, ::1] P_view = P
-    cdef int32_t[:, ::1] Q_view = Q
+    cdef float32_t[:, ::1] D_view = D
+    cdef float32_t[:, ::1] P_view = P
+    cdef float32_t[:, ::1] Q_view = Q
 
     cdef uint8_t[::1] aligned_seq1_view = aligned_seq1
     cdef uint8_t[::1] aligned_seq2_view = aligned_seq2
@@ -128,7 +128,7 @@ cdef TracebackRes align_main(const uint8_t[::1] seq1, const uint8_t[::1] seq2, c
     res = trace_func(D_view, P_view, Q_view, loc, max_len, aligned_seq1_view, aligned_seq2_view, seq1, seq2, subMatrix, gap_open, gap_extend)
     return res
 
-cdef void global_align_fill(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[:, :] Q_view, const cnp.int64_t[:, :] subMatrix, const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept :
+cdef void global_align_fill(float32_t[:, :] D_view, float32_t[:, :] P_view, float32_t[:, :] Q_view, const cnp.int64_t[:, :] subMatrix, const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept :
     cdef Py_ssize_t i, j
     cdef Py_ssize_t m = seq1.shape[0]
     cdef Py_ssize_t n = seq2.shape[0]
@@ -217,7 +217,7 @@ cdef void local_align_fill(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[:
                 0
             )
 
-cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[:, :] Q_view, Index loc, Py_ssize_t max_len, uint8_t[::1] aligned_seq1_view, uint8_t[::1] aligned_seq2_view, const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const cnp.int64_t[:, :] subMatrix, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept:
+cdef TracebackRes global_align_trace(float32_t[:, :] D_view, float32_t[:, :] P_view, float32_t[:, :] Q_view, Index loc, Py_ssize_t max_len, uint8_t[::1] aligned_seq1_view, uint8_t[::1] aligned_seq2_view, const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const cnp.int64_t[:, :] subMatrix, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept:
     cdef float32_t score
     cdef uint8_t current_matrix
     cdef TracebackRes res

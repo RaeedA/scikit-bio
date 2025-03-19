@@ -1,4 +1,4 @@
-from random import choice, randint, seed
+from random import choice, randint, seed, uniform
 import timeit
 
 from skbio import DNA
@@ -82,8 +82,8 @@ def test(times, length, diff=0):
         else:
             scope = "global"
         scope = "global"
-        gap_open = randint(-10, 0)
-        gap_extend = randint(-10, 0)
+        gap_open = round(uniform(-10, 0), 2)
+        gap_extend = round(uniform(-10, 0), 2)
         try:
             res, score1 = align_wrapper(a, b, submat1, gap_open, gap_extend, scope)
         except Exception:
@@ -120,5 +120,6 @@ if __name__ == "__main__":
     # && echo =====RUNNING CODE=====
     # && python skbio/alignment/runAlign.py
     test(1000, 100)
+    # test(1, 100)
     # run("TGATC", "CCCGA", -1, -7, "global")
     # run("CGGAA", "CAACA", 0, -2, "global")
