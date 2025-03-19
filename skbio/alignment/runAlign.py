@@ -10,15 +10,15 @@ from Bio import Align
 
 def run(seq1, seq2, gap_open, gap_extend, scope):
     submat = SubMatrix.by_name("NUC.4.4")
-    aligner = Align.PairwiseAligner(
-        substitution_matrix=substitution_matrices.load("NUC.4.4"),
-        open_gap_score=gap_open,
-        extend_gap_score=gap_extend,
-        mode=scope,
-    ).align(seq1, seq2)
-    print("BioPy:", aligner[0].score)
-    for align in aligner:
-        print(align)
+    # aligner = Align.PairwiseAligner(
+    #     substitution_matrix=substitution_matrices.load("NUC.4.4"),
+    #     open_gap_score=gap_open,
+    #     extend_gap_score=gap_extend,
+    #     mode=scope,
+    # ).align(seq1, seq2)
+    # print("BioPy:", aligner[0].score)
+    # for align in aligner:
+    #     print(align)
     res, score = align_wrapper(seq1, seq2, submat, gap_open, gap_extend, scope)
     print("Mine:", score)
     print()
@@ -30,7 +30,6 @@ def run(seq1, seq2, gap_open, gap_extend, scope):
         align_score(seq1_aligned, seq2_aligned, submat, gap_open, gap_extend),
     )
     print(res)
-    (align_score("TGATC", seq2_aligned, submat, gap_open, gap_extend),)
 
 
 def times(seq1, seq2):
@@ -120,6 +119,6 @@ if __name__ == "__main__":
     # use python skbio/alignment/setup.py build_ext --inplace
     # && echo =====RUNNING CODE=====
     # && python skbio/alignment/runAlign.py
-    # test(1000, 100)
-    run("TGATC", "CCCGA", -1, -7, "global")
+    test(1000, 100)
+    # run("TGATC", "CCCGA", -1, -7, "global")
     # run("CGGAA", "CAACA", 0, -2, "global")

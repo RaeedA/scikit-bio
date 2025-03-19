@@ -24,7 +24,7 @@ cdef struct Index:
     Py_ssize_t j
 
 cdef struct TracebackRes:
-    int8_t score
+    float32_t score
     Py_ssize_t idx
     Index start
     Index end
@@ -218,7 +218,7 @@ cdef void local_align_fill(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[:
             )
 
 cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view, int32_t[:, :] Q_view, Index loc, Py_ssize_t max_len, uint8_t[::1] aligned_seq1_view, uint8_t[::1] aligned_seq2_view, const cnp.uint8_t[::1] seq1, const cnp.uint8_t[::1] seq2, const cnp.int64_t[:, :] subMatrix, const int8_t GAP_OPEN_PENALTY, const int8_t GAP_EXTEND_PENALTY) noexcept:
-    cdef int8_t score
+    cdef float32_t score
     cdef uint8_t current_matrix
     cdef TracebackRes res
     cdef Py_ssize_t idx = max_len - 1
@@ -238,7 +238,8 @@ cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view,
         #TODO: store them in var if needed
         if current_matrix == 0:
             if D_view[loc.i, loc.j] == D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]]:
-                # print('diag', D_view[loc.i, loc.j], D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]], P_view[loc.i, loc.j], Q_view[loc.i, loc.j])
+                # print('diag', end=' ')
+                # print(D_view[loc.i, loc.j], D_view[loc.i-1, loc.j-1] + subMatrix[seq1[loc.i-1], seq2[loc.j-1]], P_view[loc.i, loc.j], Q_view[loc.i, loc.j])
                 loc.i -= 1
                 loc.j -= 1
             elif D_view[loc.i, loc.j] == P_view[loc.i, loc.j]:
@@ -248,13 +249,15 @@ cdef TracebackRes global_align_trace(int32_t[:, :] D_view, int32_t[:, :] P_view,
                 current_matrix = 2
                 continue
         elif current_matrix == 1:
-            # print('up', P_view[loc.i, loc.j], D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY)
+            # print('up', end=' ')
+            # print(P_view[loc.i, loc.j], D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, P_view[loc.i-1, loc.j] + GAP_EXTEND_PENALTY)
             aligned_seq2_view[idx] = GAP
             if P_view[loc.i, loc.j] == D_view[loc.i-1, loc.j] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY:
                 current_matrix = 0
             loc.i -= 1
         else:
-            # print('side', Q_view[loc.i, loc.j], D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, Q_view[loc.i, loc.j-1] + GAP_EXTEND_PENALTY)
+            # print('side', end=' ')
+            # print(Q_view[loc.i, loc.j], D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY, Q_view[loc.i, loc.j-1] + GAP_EXTEND_PENALTY)
             aligned_seq1_view[idx] = GAP
             if Q_view[loc.i, loc.j] == D_view[loc.i, loc.j-1] + GAP_OPEN_PENALTY + GAP_EXTEND_PENALTY:
                 current_matrix = 0 
