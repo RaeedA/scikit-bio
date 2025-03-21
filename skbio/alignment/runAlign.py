@@ -32,40 +32,30 @@ def run(seq1, seq2, gap_open, gap_extend, scope):
     print(res)
 
 
-def times(seq1, seq2):
-    gap_open = 2
-    gap_extend = 2
-    seq1 = seq1.upper()
-    seq2 = seq2.upper()
+def times(times, length, diff=0):
+    chars = ["A", "C", "G", "T"]
+    seq1 = "".join(choice(chars) for j in range(length))
+    seq2 = "".join(choice(chars) for j in range(length + randint(-diff, diff)))
+    if randint(1, 2) == 1:
+        scope = "local"
+    else:
+        scope = "global"
+    gap_open = round(uniform(-10, 0), 2)
+    gap_extend = round(uniform(-10, 0), 2)
     submat = SubMatrix.by_name("NUC.4.4")
-    num = 1
-    print("Test with 1")
     result = timeit.Timer(
-        lambda: align_wrapper(seq1, seq2, submat, -gap_open, -gap_extend)
-    ).timeit(num)
-    print(f"mine: {result/num:.5f}s")
+        lambda: align_wrapper(seq1, seq2, submat, -gap_open, -gap_extend, scope)
+    ).timeit(times)
+    print(f"mine: {result/times:.5f}s")
     result = timeit.Timer(
         lambda: Align.PairwiseAligner(
             substitution_matrix=substitution_matrices.load("NUC.4.4"),
             open_gap_score=-gap_open,
             extend_gap_score=-gap_extend,
+            mode=scope,
         ).align(seq1, seq2)
-    ).timeit(num)
-    print(f"biopy: {result/num:.5f}s")
-    # num = 10000
-    # print("Test with 10000")
-    # result = timeit.Timer(
-    #     lambda: align_wrapper(seq1, seq2, submat, -gap_open, -gap_extend)
-    # ).timeit(num)
-    # print(f"mine: {result/num:.5f}s")
-    # result = timeit.Timer(
-    #     lambda: Align.PairwiseAligner(
-    #         substitution_matrix=substitution_matrices.load("NUC.4.4"),
-    #         open_gap_score=-gap_open,
-    #         extend_gap_score=-gap_extend,
-    #     ).align(seq1, seq2)
-    # ).timeit(num)
-    # print(f"biopy: {result/num:.5f}s")
+    ).timeit(times)
+    print(f"biopy: {result/times:.5f}s")
 
 
 def test(times, length, diff=0):
@@ -81,7 +71,6 @@ def test(times, length, diff=0):
             scope = "local"
         else:
             scope = "global"
-        scope = "global"
         gap_open = round(uniform(-10, 0), 2)
         gap_extend = round(uniform(-10, 0), 2)
         try:
@@ -116,10 +105,7 @@ def test(times, length, diff=0):
 
 
 if __name__ == "__main__":
-    # use python skbio/alignment/setup.py build_ext --inplace
-    # && echo =====RUNNING CODE=====
-    # && python skbio/alignment/runAlign.py
-    test(1000, 100)
-    # test(1, 100)
-    # run("TGATC", "CCCGA", -1, -7, "global")
+    # test(1000, 100)
+    # run("TGATCCTA", "CCCGAATC", -1, -7, "local")
     # run("CGGAA", "CAACA", 0, -2, "global")
+    times(100, 1000)
